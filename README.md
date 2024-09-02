@@ -8,7 +8,7 @@
 
 ## 如何使用？
 
-1. 从 [Releases](https://github.com/KLXLjun/UmaAIChat/releases) 页面下载最新的程序。
+1. 从 [Releases](https://github.com/KLXLjun/UmaAIChatServer/releases) 或 [Actions](https://github.com/KLXLjun/UmaAIChatServer/actions) 页面下载最新程序。
 
 2. 在运行第一次过后，程序目录下会生成一个名为`config.toml`的配置文件，文件生成之后关闭程序。
 

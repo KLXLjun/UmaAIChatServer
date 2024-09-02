@@ -15,6 +15,7 @@ const (
 type QueuePrompt struct {
 	Emotion     string
 	CallBack    chan ChatResult
+	TargetLang  int
 	PromptGroup openaigo.Message
 }
 
@@ -24,6 +25,7 @@ type SavePrompt struct {
 }
 
 type ChatResult struct {
-	Message string `json:"Message"`
-	Emotion string `json:"Emotion"`
+	Message   string `json:"Message"`
+	Emotion   string `json:"Emotion"`
+	Translate string `json:"Translate"`
 }

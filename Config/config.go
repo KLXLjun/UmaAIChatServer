@@ -23,6 +23,12 @@ var Conf = Config{
 		Model:  "gpt-4o-mini",
 		Proxy:  "",
 	},
+	TranslateConfig: ClientConfig{
+		APIUrl: "https://api.openai.com/v1",
+		APIKey: "sk-test",
+		Model:  "gpt-4o-mini",
+		Proxy:  "",
+	},
 }
 
 func LoadConfig(run string) (bool, error) {

@@ -20,9 +20,20 @@ jobs:
       uses: actions/setup-go@v4
       with:
         go-version: '1.23'
+
+    - name: Set up environment for Windows build
+      run: |
+        echo "GOOS=windows" >> $GITHUB_ENV
+        echo "GOARCH=amd64" >> $GITHUB_ENV
         
     - name: Get dependencies
       run: go mod download
 
     - name: Build
-      run: go build -v ./...
+      run: go build -v -o UmaAIChatServer.exe ./...
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-binaries
+        path: UmaAIChatServer.exe

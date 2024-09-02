@@ -1,9 +1,10 @@
 package config
 
 type Config struct {
-	Port          int          `toml:"port"`
-	ChatConfig    ClientConfig `toml:"chat"`
-	EmotionConfig ClientConfig `toml:"emotion"`
+	Port            int          `toml:"port"`
+	ChatConfig      ClientConfig `toml:"chat"`
+	EmotionConfig   ClientConfig `toml:"emotion"`
+	TranslateConfig ClientConfig `toml:"translate"`
 }
 
 type ClientConfig struct {

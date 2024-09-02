@@ -1,7 +1,9 @@
 package openai
 
 import (
+	vitsfast "UmaAIChatServer/API/VITS-fast"
 	config "UmaAIChatServer/Config"
+	utils "UmaAIChatServer/Utils"
 	"UmaAIChatServer/Utils/logx"
 	"context"
 	"fmt"
@@ -28,6 +30,7 @@ var maxToken = 8192
 
 var client *openaigo.Client
 var emotionClient *openaigo.Client
+var translateClient *openaigo.Client
 
 var tokenLock = sync.Mutex{}
 
@@ -67,6 +70,22 @@ func InitEmotionClient(proxyUrl string, Url string, key string) {
 	emotionClient.HTTPClient = &http.Client{Transport: transport}
 }
 
+func InitTranslateClient(proxyUrl string, Url string, key string) {
+	translateClient = openaigo.NewClient(key)
+	translateClient.BaseURL = Url
+	var transport *http.Transport
+	proxy, proxyError := url.Parse(proxyUrl)
+	if proxyError == nil && proxyUrl != "" {
+		transport = &http.Transport{Proxy: http.ProxyURL(proxy)}
+	} else {
+		if proxyUrl != "" {
+			logx.Warn(tag, "The proxy address is incorrect. 代理地址不正确")
+		}
+		transport = &http.Transport{}
+	}
+	translateClient.HTTPClient = &http.Client{Transport: transport}
+}
+
 func AddTask(push QueuePrompt) {
 	err := messageTaskQueue.Enqueue(push)
 	if err != nil {
@@ -85,22 +104,57 @@ func ChatTask() {
 		var requestOK, Message, useToken = RequestChat(resq)
 		if requestOK {
 			result := ChatResult{
-				Emotion: "默认",
+				Emotion:   "默认",
+				Translate: "",
 			}
-			var requestEmotionOk, EmotionSelect, _ = RequestEmotion(openaigo.Message{
-				Role:    ChatMessageRoleUser,
-				Content: fmt.Sprintf("问：%s\n答：%s\n请分析上面对话发生时回答者的状态。只需要告诉我状态，不要回复标点符号或者其他内容。可供选择的状态：%s。", currentTask.PromptGroup.Content, Message.Content, currentTask.Emotion),
-			})
 
-			if requestEmotionOk {
-				eSelect := strings.Split(currentTask.Emotion, ",")
-				for _, v := range eSelect {
-					if strings.Contains(EmotionSelect.Content, v) {
-						result.Emotion = v
-						break
+			var wg sync.WaitGroup
+			wg.Add(2)
+
+			go func() {
+				defer wg.Done()
+				var requestEmotionOk, EmotionSelect, _ = RequestEmotion(openaigo.Message{
+					Role:    ChatMessageRoleUser,
+					Content: fmt.Sprintf("问：%s\n答：%s\n请分析上面对话发生时回答者的状态。只需要告诉我状态，不要回复标点符号或者其他内容。可供选择的状态：%s。", currentTask.PromptGroup.Content, Message.Content, currentTask.Emotion),
+				})
+
+				if requestEmotionOk {
+					eSelect := strings.Split(currentTask.Emotion, ",")
+					for _, v := range eSelect {
+						if strings.Contains(EmotionSelect.Content, v) {
+							result.Emotion = v
+							break
+						}
 					}
 				}
-			}
+			}()
+
+			go func() {
+				defer wg.Done()
+
+				if !vitsfast.IsOk {
+					vitsfast.Init()
+				}
+
+				if !vitsfast.IsOk {
+					return
+				}
+
+				if currentTask.TargetLang == 0 {
+					return
+				}
+
+				var requestTranslateOk, TranslateContent, _ = RequestTranslate(openaigo.Message{
+					Role:    ChatMessageRoleUser,
+					Content: fmt.Sprintf("Please translate the following into %s without further explanation.:\n%s。", utils.TrList[currentTask.TargetLang-1], Message.Content),
+				})
+
+				if requestTranslateOk {
+					result.Translate = TranslateContent.Content
+				}
+			}()
+
+			wg.Wait()
 
 			//储存输入
 			tokenStack.Enqueue(SavePrompt{
@@ -194,6 +248,25 @@ func RequestChat(input []openaigo.Message) (bool, openaigo.Message, openaigo.Usa
 	}
 	ctx := context.Background()
 	chat, err := client.Chat(ctx, request)
+	if err != nil {
+		return false, openaigo.Message{}, openaigo.Usage{}
+	}
+	return true, chat.Choices[0].Message, chat.Usage
+}
+
+func RequestTranslate(input openaigo.Message) (bool, openaigo.Message, openaigo.Usage) {
+	if translateClient == nil {
+		return false, openaigo.Message{}, openaigo.Usage{}
+	}
+	request := openaigo.ChatRequest{
+		Model: config.Conf.EmotionConfig.Model,
+		Messages: []openaigo.Message{
+			{Role: ChatMessageRoleSystem, Content: "You are a helpful assistant. You can help me by answering my questions. You can also ask me questions."},
+			input,
+		},
+	}
+	ctx := context.Background()
+	chat, err := translateClient.Chat(ctx, request)
 	if err != nil {
 		return false, openaigo.Message{}, openaigo.Usage{}
 	}

@@ -6,7 +6,7 @@ This project is the server part of [UmaAIChat](https://github.com/KLXLjun/UmaAIC
 
 ## How to Use It?
 
-1. Get the latest version from the [Releases](https://github.com/KLXLjun/UmaAIChat/releases) page.
+1. Download the latest program from the [Releases](https://github.com/KLXLjun/UmaAIChatServer/releases) or [Actions](https://github.com/KLXLjun/UmaAIChatServer/actions) page.
 2. After running it for the first time, a file named `config.toml` will be created in your program's directory. Close the program once this is done.
 3. In the configuration file:
 

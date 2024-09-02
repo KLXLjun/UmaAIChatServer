@@ -2,10 +2,14 @@ package main
 
 import (
 	openai "UmaAIChatServer/API/OpenAI"
+	vitsfast "UmaAIChatServer/API/VITS-fast"
 	config "UmaAIChatServer/Config"
+	utils "UmaAIChatServer/Utils"
+	"UmaAIChatServer/Utils/logx"
 	"bufio"
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"os/signal"
@@ -51,6 +55,9 @@ func main() {
 
 	openai.InitClient(config.Conf.ChatConfig.Proxy, config.Conf.ChatConfig.APIUrl, config.Conf.ChatConfig.APIKey)
 	openai.InitEmotionClient(config.Conf.EmotionConfig.Proxy, config.Conf.EmotionConfig.APIUrl, config.Conf.EmotionConfig.APIKey)
+	openai.InitTranslateClient(config.Conf.TranslateConfig.Proxy, config.Conf.TranslateConfig.APIUrl, config.Conf.TranslateConfig.APIKey)
+
+	vitsfast.Init()
 
 	e := echo.New()
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
@@ -90,12 +97,19 @@ func main() {
 	g.POST("/chat", func(c echo.Context) error {
 		msg := c.FormValue("prompt")
 		emotion := c.FormValue("emotion")
+		language := 0
+		if o := utils.Str2Int(c.FormValue("language")); o != math.MinInt {
+			language = o
+		}
+
+		logx.Debug("test", language)
 
 		channel := make(chan openai.ChatResult, 1)
 
 		openai.AddTask(openai.QueuePrompt{
-			Emotion:  emotion,
-			CallBack: channel,
+			Emotion:    emotion,
+			CallBack:   channel,
+			TargetLang: language,
 			PromptGroup: openaigo.Message{
 				Role:    openai.ChatMessageRoleUser,
 				Content: msg,
@@ -108,6 +122,27 @@ func main() {
 			return c.JSON(http.StatusOK, i)
 		} else {
 			return c.JSON(http.StatusOK, "")
+		}
+	})
+
+	g.GET("/vits-fast", func(c echo.Context) error {
+		index := 0
+		text := c.QueryParam("text")
+		language := 0
+
+		if o := utils.Str2Int(c.QueryParam("index")); o != math.MinInt {
+			index = o
+		}
+
+		if o := utils.Str2Int(c.QueryParam("language")); o != math.MinInt {
+			language = o
+		}
+
+		rsl := vitsfast.GenerateAudio(index, text, language, 1.0)
+		if rsl != nil {
+			return c.Blob(http.StatusOK, "audio/wav", rsl)
+		} else {
+			return c.NoContent(http.StatusInternalServerError)
 		}
 	})
 
