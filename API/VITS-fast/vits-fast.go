@@ -82,6 +82,9 @@ func GetCharacterAndLanguage() ([]string, []string) {
 
 func GenerateAudio(index int, text string, language int, speed float32) []byte {
 	client := resty.New()
+	if index >= len(Characters) {
+		return nil
+	}
 
 	charaName := Characters[index]
 	ps := VitsPostData{

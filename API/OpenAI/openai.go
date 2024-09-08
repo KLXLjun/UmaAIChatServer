@@ -136,10 +136,6 @@ func ChatTask() {
 					vitsfast.Init()
 				}
 
-				if !vitsfast.IsOk {
-					return
-				}
-
 				if currentTask.TargetLang == 0 {
 					return
 				}
@@ -259,7 +255,7 @@ func RequestTranslate(input openaigo.Message) (bool, openaigo.Message, openaigo.
 		return false, openaigo.Message{}, openaigo.Usage{}
 	}
 	request := openaigo.ChatRequest{
-		Model: config.Conf.EmotionConfig.Model,
+		Model: config.Conf.TranslateConfig.Model,
 		Messages: []openaigo.Message{
 			{Role: ChatMessageRoleSystem, Content: "You are a helpful assistant. You can help me by answering my questions. You can also ask me questions."},
 			input,
