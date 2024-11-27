@@ -24,6 +24,9 @@ func Init() {
 	if chara == nil || Lang == nil {
 		return
 	}
+	if len(Languages) != 3 {
+		return
+	}
 	IsOk = true
 	utils.LangList = [3]string(Lang)
 	Characters = chara
